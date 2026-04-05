@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MediDrone Ops</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F1EFE8;
+  --card:#ffffff;
+  --border:#E2E0D8;
+  --txt:#1a1a1a;
+  --muted:#6b6b6b;
+  --subtle:#9a9a9a;
+  --red:#c0392b;
+  --red-bg:#fdf0ef;
+  --blue:#1a5fa8;
+  --blue-bg:#eef4fb;
+  --green:#2d6a1f;
+  --green-bg:#edf5e8;
+  --amber:#8a5a00;
+  --amber-bg:#fdf5e6;
+  --radius:12px;
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);
+  color:var(--txt);
+  font-size:13px;
+  min-height:100vh;
+  padding:20px 24px;
+}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.topbar h1{font-size:18px;font-weight:400;letter-spacing:-.3px}
+.topbar h1 em{font-style:normal;color:var(--red)}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.live-indicator{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;animation:blink 1.6s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+#clock{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px 16px}
+.kpi-val{font-size:30px;font-weight:400;line-height:1;margin-bottom:6px}
+.kpi-label{font-size:13px;color:var(--muted)}
+.kv-red{color:var(--red)}
+.kv-blue{color:var(--blue)}
+.kv-green{color:var(--green)}
+.body{display:grid;grid-template-columns:1fr 300px;gap:14px;margin-bottom:14px}
+.map-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.map-head{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--border)}
+.map-head-label{font-size:13px;color:var(--muted)}
+.legend{display:flex;align-items:center;gap:16px}
+.leg{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+.leg-sq{width:9px;height:9px;border-radius:2px;background:var(--red);flex-shrink:0}
+.leg-circle-r{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--red);flex-shrink:0}
+.leg-circle-g{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--green);flex-shrink:0}
+.map-svg-wrap{position:relative}
+#mapsvg{width:100%;display:block;background:#f4f2ea}
+.side{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.card-title{font-size:13px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:400}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.mission-list{display:flex;flex-direction:column;gap:6px}
+.mission{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border:1px solid var(--border);border-radius:8px;gap:10px}
+.m-name{font-size:13px;font-weight:500;margin-bottom:2px}
+.m-sub{font-size:11px;color:var(--muted)}
+.bat-list{display:flex;flex-direction:column;gap:8px}
+.bat-row{display:flex;align-items:center;gap:10px}
+.bat-id{font-size:12px;color:var(--muted);min-width:36px}
+.bat-track{flex:1;height:5px;background:#e8e6de;border-radius:3px;overflow:hidden}
+.bat-fill{height:100%;border-radius:3px}
+.bat-pct{font-size:12px;color:var(--muted);min-width:30px;text-align:right}
+.bottom{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.req-list{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.req{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:background .12s}
+.req:hover{background:#fafaf7}
+.req.done{opacity:.4;pointer-events:none}
+.req-accent{width:3px;height:36px;border-radius:2px;flex-shrink:0}
+.req-body{flex:1;min-width:0}
+.req-name{font-size:13px;font-weight:400;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.req-detail{font-size:11px;color:var(--muted)}
+.req-time{font-size:11px;color:var(--subtle);white-space:nowrap}
+.dispatch-btn{width:100%;padding:11px;background:var(--card);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--txt);cursor:pointer;transition:background .12s}
+.dispatch-btn:hover{background:#fafaf7}
+.feed{display:flex;flex-direction:column;gap:5px}
+.feed-item{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:8px;font-size:12px;line-height:1.45}
+.feed-dot{width:6px;height:6px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.feed-text{flex:1}
+.feed-time{font-size:11px;color:var(--subtle);white-space:nowrap}
+.f-red{background:var(--red-bg)}.f-red .feed-dot{background:var(--red)}.f-red .feed-text{color:var(--red)}
+.f-amber{background:var(--amber-bg)}.f-amber .feed-dot{background:#c07000}.f-amber .feed-text{color:var(--amber)}
+.f-blue{background:var(--blue-bg)}.f-blue .feed-dot{background:var(--blue)}.f-blue .feed-text{color:var(--blue)}
+.f-green{background:var(--green-bg)}.f-green .feed-dot{background:var(--green)}.f-green .feed-text{color:var(--green)}
+@keyframes fadein{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.fadein{animation:fadein .25s ease}
+.tooltip{
+  position:absolute;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:8px 12px;
+  font-size:11px;
+  color:var(--txt);
+  pointer-events:none;
+  display:none;
+  z-index:10;
+  min-width:160px;
+  line-height:1.6;
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/roslib/build/roslib.min.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>MediDrone <em>ops</em> — Greater Tunis</h1>
+  <div class="topbar-right">
+    <div class="live-indicator"><div class="live-dot"></div>live</div>
+    <span id="clock">--:--:--</span>
+  </div>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="kpi-val kv-red" id="k-active">7</div><div class="kpi-label">drones active</div></div>
+  <div class="kpi"><div class="kpi-val kv-red" id="k-urgent">3</div><div class="kpi-label">urgent requests</div></div>
+  <div class="kpi"><div class="kpi-val kv-blue" id="k-done">24</div><div class="kpi-label">deliveries today</div></div>
+  <div class="kpi"><div class="kpi-val kv-green">98.7%</div><div class="kpi-label">success rate</div></div>
+</div>
+
+<div class="body">
+  <div class="map-card">
+    <div class="map-head">
+      <span class="map-head-label">fleet map</span>
+      <div class="legend">
+        <div class="leg"><div class="leg-sq"></div>hospital</div>
+        <div class="leg"><div class="leg-circle-r"></div>urgent</div>
+        <div class="leg"><div class="leg-circle-g"></div>served</div>
+      </div>
+    </div>
+    <div class="map-svg-wrap">
+      <div class="tooltip" id="tooltip"></div>
+      <svg id="mapsvg" viewBox="0 0 620 320">
+        <line x1="0" y1="107" x2="620" y2="107" stroke="#dddbd2" stroke-width="0.6"/>
+        <line x1="0" y1="213" x2="620" y2="213" stroke="#dddbd2" stroke-width="0.6"/>
+        <line x1="207" y1="0" x2="207" y2="320" stroke="#dddbd2" stroke-width="0.6"/>
+        <line x1="413" y1="0" x2="413" y2="320" stroke="#dddbd2" stroke-width="0.6"/>
+        <text x="8" y="16" font-size="9" fill="#aaa9a0" font-family="-apple-system,sans-serif">Tunis centre</text>
+        <text x="425" y="16" font-size="9" fill="#aaa9a0" font-family="-apple-system,sans-serif">La Marsa / Carthage</text>
+        <text x="8" y="228" font-size="9" fill="#aaa9a0" font-family="-apple-system,sans-serif">Bardo</text>
+        <text x="425" y="228" font-size="9" fill="#aaa9a0" font-family="-apple-system,sans-serif">Ariana</text>
+
+        <path d="M118 72 Q190 130 265 183" fill="none" stroke="#c0392b" stroke-width="1" stroke-dasharray="5 4" opacity=".55">
+          <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1s" repeatCount="indefinite"/>
+        </path>
+        <path d="M118 72 Q280 48 440 68" fill="none" stroke="#1a5fa8" stroke-width="1" stroke-dasharray="5 4" opacity=".55">
+          <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1.5s" repeatCount="indefinite"/>
+        </path>
+        <path d="M470 72 Q400 128 355 180" fill="none" stroke="#888" stroke-width="1" stroke-dasharray="5 4" opacity=".4">
+          <animate attributeName="stroke-dashoffset" from="0" to="-18" dur="1.3s" repeatCount="indefinite"/>
+        </path>
+
+        <g style="cursor:pointer"
+           onmouseenter="tip(event,'Charles Nicolle Hospital','Critical hub · 3 drones outbound','Insulin, organs, blood bags')"
+           onmouseleave="hideTip()">
+          <rect x="105" y="59" width="22" height="22" rx="3" fill="#c0392b"/>
+          <text x="116" y="73.5" text-anchor="middle" font-size="11" fill="white" font-family="-apple-system,sans-serif" font-weight="500">H</text>
+          <text x="116" y="91" text-anchor="middle" font-size="8.5" fill="#6b6b6b" font-family="-apple-system,sans-serif">C. Nicolle</text>
+        </g>
+
+        <g style="cursor:pointer"
+           onmouseenter="tip(event,'Habib Thameur Hospital','1 drone inbound','Blood bags, ICU equipment')"
+           onmouseleave="hideTip()">
+          <rect x="457" y="59" width="22" height="22" rx="3" fill="#444"/>
+          <text x="468" y="73.5" text-anchor="middle" font-size="11" fill="white" font-family="-apple-system,sans-serif" font-weight="500">H</text>
+          <text x="468" y="91" text-anchor="middle" font-size="8.5" fill="#6b6b6b" font-family="-apple-system,sans-serif">Thameur</text>
+        </g>
+
+        <g style="cursor:pointer"
+           onmouseenter="tip(event,'La Marsa Clinic','Receiving from DR-05','ICU equipment')"
+           onmouseleave="hideTip()">
+          <rect x="427" y="236" width="22" height="22" rx="3" fill="#444"/>
+          <text x="438" y="250.5" text-anchor="middle" font-size="11" fill="white" font-family="-apple-system,sans-serif" font-weight="500">H</text>
+          <text x="438" y="268" text-anchor="middle" font-size="8.5" fill="#6b6b6b" font-family="-apple-system,sans-serif">La Marsa</text>
+        </g>
+
+        <g style="cursor:pointer"
+           onmouseenter="tip(event,'Patient P-041','URGENT · DR-01 en route · ETA 2 min','Insulin — diabetic emergency')"
+           onmouseleave="hideTip()">
+          <circle cx="265" cy="183" r="9" fill="white" stroke="#c0392b" stroke-width="1.8"/>
+          <text x="265" y="186.5" text-anchor="middle" font-size="7.5" fill="#c0392b" font-family="-apple-system,sans-serif">P</text>
+          <text x="265" y="202" text-anchor="middle" font-size="8.5" fill="#6b6b6b" font-family="-apple-system,sans-serif">P-041</text>
+          <circle cx="265" cy="183" r="14" fill="none" stroke="#c0392b" stroke-width="0.7" stroke-dasharray="3 3" opacity=".45">
+            <animateTransform attributeName="transform" type="rotate" from="0 265 183" to="360 265 183" dur="4s" repeatCount="indefinite"/>
+          </circle>
+        </g>
+
+        <g style="cursor:pointer"
+           onmouseenter="tip(event,'Patient P-033','URGENT · DR-02 en route · ETA 4 min','Epinephrine — anaphylaxis')"
+           onmouseleave="hideTip()">
+          <circle cx="355" cy="180" r="9" fill="white" stroke="#c0392b" stroke-width="1.8"/>
+          <text x="355" y="183.5" text-anchor="middle" font-size="7.5" fill="#c0392b" font-family="-apple-system,sans-serif">P</text>
+          <text x="355" y="198" text-anchor="middle" font-size="8.5" fill="#6b6b6b" font-family="-apple-system,sans-serif">P-033</text>
+          <circle cx="355" cy="180" r="14" fill="none" stroke="#c0392b" stroke-width="0.7" stroke-dasharray="3 3" opacity=".45">
+            <animateTransform attributeName="transform" type="rotate" from="0 355 180" to="360 355 180" dur="4s" repeatCount="indefinite"/>
+          </circle>
+        </g>
+
+        <g style="cursor:pointer"
+           onmouseenter="tip(event,'Patient P-017','Delivered 9 min ago','Insulin')"
+           onmouseleave="hideTip()">
+          <circle cx="175" cy="248" r="9" fill="white" stroke="#2d6a1f" stroke-width="1.8"/>
+          <text x="175" y="251.5" text-anchor="middle" font-size="7.5" fill="#2d6a1f" font-family="-apple-system,sans-serif">P</text>
+          <text x="175" y="267" text-anchor="middle" font-size="8.5" fill="#6b6b6b" font-family="-apple-system,sans-serif">P-017</text>
+        </g>
+
+        <g style="cursor:pointer"
+           onmouseenter="tip(event,'Patient P-058','Queued — awaiting drone','Anticoagulants — cardiac')"
+           onmouseleave="hideTip()">
+          <circle cx="530" cy="218" r="9" fill="white" stroke="#8a5a00" stroke-width="1.5"/>
+          <text x="530" y="221.5" text-anchor="middle" font-size="7.5" fill="#8a5a00" font-family="-apple-system,sans-serif">P</text>
+          <text x="530" y="237" text-anchor="middle" font-size="8.5" fill="#6b6b6b" font-family="-apple-system,sans-serif">P-058</text>
+        </g>
+
+        <g>
+          <animateMotion dur="5s" repeatCount="indefinite" path="M118 72 Q190 130 265 183"/>
+          <polygon points="-6,0 0,-4.5 6,0 0,4.5" fill="#c0392b"/>
+          <text y="13" text-anchor="middle" font-size="7" fill="#c0392b" font-family="-apple-system,sans-serif">DR-01</text>
+        </g>
+        <g>
+          <animateMotion dur="9s" repeatCount="indefinite" path="M118 72 Q280 48 440 68"/>
+          <polygon points="-6,0 0,-4.5 6,0 0,4.5" fill="#1a5fa8"/>
+          <text y="13" text-anchor="middle" font-size="7" fill="#1a5fa8" font-family="-apple-system,sans-serif">DR-03</text>
+        </g>
+        <g>
+          <animateMotion dur="7s" repeatCount="indefinite" path="M470 72 Q400 128 355 180"/>
+          <polygon points="-6,0 0,-4.5 6,0 0,4.5" fill="#666"/>
+          <text y="13" text-anchor="middle" font-size="7" fill="#666" font-family="-apple-system,sans-serif">DR-02</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="card">
+      <div class="card-title">missions <span class="badge badge-red">4 active</span></div>
+      <div class="mission-list">
+        <div class="mission">
+          <div><div class="m-name">DR-01 → P-041</div><div class="m-sub">Insulin · C. Nicolle → home</div></div>
+          <span class="badge badge-red">urgent</span>
+        </div>
+        <div class="mission">
+          <div><div class="m-name">DR-02 → P-033</div><div class="m-sub">Epinephrine · Thameur → home</div></div>
+          <span class="badge badge-blue">transit</span>
+        </div>
+        <div class="mission">
+          <div><div class="m-name">DR-03 → Thameur</div><div class="m-sub">Organs · C. Nicolle → hospital</div></div>
+          <span class="badge badge-blue">transit</span>
+        </div>
+        <div class="mission">
+          <div><div class="m-name">DR-04 → P-017</div><div class="m-sub">Insulin · delivered 9m ago</div></div>
+          <span class="badge badge-green">done</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">battery</div>
+      <div class="bat-list">
+        <div class="bat-row">
+          <span class="bat-id">DR-01</span>
+          <div class="bat-track"><div class="bat-fill" style="width:68%;background:#8a5a00"></div></div>
+          <span class="bat-pct">68%</span>
+        </div>
+        <div class="bat-row">
+          <span class="bat-id">DR-02</span>
+          <div class="bat-track"><div class="bat-fill" style="width:81%;background:#2d6a1f"></div></div>
+          <span class="bat-pct">81%</span>
+        </div>
+        <div class="bat-row">
+          <span class="bat-id">DR-03</span>
+          <div class="bat-track"><div class="bat-fill" style="width:55%;background:#8a5a00"></div></div>
+          <span class="bat-pct">55%</span>
+        </div>
+        <div class="bat-row">
+          <span class="bat-id">DR-04</span>
+          <div class="bat-track"><div class="bat-fill" style="width:92%;background:#2d6a1f"></div></div>
+          <span class="bat-pct">92%</span>
+        </div>
+        <div class="bat-row">
+          <span class="bat-id">DR-05</span>
+          <div class="bat-track"><div class="bat-fill" style="width:28%;background:#c0392b"></div></div>
+          <span class="bat-pct" style="color:#c0392b">28%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bottom">
+  <div class="card">
+    <div class="card-title">incoming requests <span class="badge badge-red" id="urg-badge">3 urgent</span></div>
+    <div class="req-list" id="req-list">
+      <div class="req" id="r1" onclick="dispatch('r1','P-041','DR-01','2 min')">
+        <div class="req-accent" style="background:#c0392b"></div>
+        <div class="req-body">
+          <div class="req-name">P-041 — insulin, diabetic emergency</div>
+          <div class="req-detail">La Marsa · 2.1 km from C. Nicolle</div>
+        </div>
+        <span class="req-time">2m ago</span>
+      </div>
+      <div class="req" id="r2" onclick="dispatch('r2','P-033','DR-02','4 min')">
+        <div class="req-accent" style="background:#c0392b"></div>
+        <div class="req-body">
+          <div class="req-name">P-033 — epinephrine, anaphylaxis</div>
+          <div class="req-detail">Ariana · 3.4 km from Thameur</div>
+        </div>
+        <span class="req-time">5m ago</span>
+      </div>
+      <div class="req" id="r3" onclick="dispatch('r3','Thameur OR','DR-03','7 min')">
+        <div class="req-accent" style="background:#8a5a00"></div>
+        <div class="req-body">
+          <div class="req-name">Thameur — blood bags, operating room</div>
+          <div class="req-detail">Hospital · 5.2 km from C. Nicolle</div>
+        </div>
+        <span class="req-time">12m ago</span>
+      </div>
+      <div class="req" id="r4" onclick="dispatch('r4','P-058','DR-04','9 min')">
+        <div class="req-accent" style="background:#8a5a00"></div>
+        <div class="req-body">
+          <div class="req-name">P-058 — anticoagulants, cardiac</div>
+          <div class="req-detail">Carthage · 4.8 km from Thameur</div>
+        </div>
+        <span class="req-time">18m ago</span>
+      </div>
+    </div>
+    <button class="dispatch-btn" onclick="autoDispatch()">dispatch all</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">activity log</div>
+    <div class="feed" id="feed">
+      <div class="feed-item f-red fadein">
+        <div class="feed-dot"></div>
+        <div class="feed-text">DR-05 battery critical (28%) — recalled to base</div>
+        <span class="feed-time">now</span>
+      </div>
+      <div class="feed-item f-amber fadein">
+        <div class="feed-dot"></div>
+        <div class="feed-text">Wind advisory in Carthage — speed capped</div>
+        <span class="feed-time">3m</span>
+      </div>
+      <div class="feed-item f-blue fadein">
+        <div class="feed-dot"></div>
+        <div class="feed-text">DR-01 final approach to P-041 — ETA 2:14</div>
+        <span class="feed-time">6m</span>
+      </div>
+      <div class="feed-item f-green fadein">
+        <div class="feed-dot"></div>
+        <div class="feed-text">DR-04 delivery confirmed — P-017 signed via app</div>
+        <span class="feed-time">9m</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// === ROS CONNECTION ===
+var ros = new ROSLIB.Ros({
+  url: 'ws://localhost:9090'
+});
+
+ros.on('connection', function() {
+  addFeed('green', 'Connected to ROS bridge', 'now');
+});
+ros.on('error', function() {
+  addFeed('red', 'ROS connection error', 'now');
+});
+ros.on('close', function() {
+  addFeed('amber', 'ROS bridge disconnected', 'now');
+});
+
+// === BATTERY TOPIC ===
+var batteryTopic = new ROSLIB.Topic({
+  ros: ros,
+  name: '/drone/battery',
+  messageType: 'sensor_msgs/BatteryState'
+});
+
+batteryTopic.subscribe(function(msg) {
+  var droneId = msg.header.frame_id;
+  var pct = Math.round(msg.percentage * 100);
+  updateBatteryBar(droneId, pct);
+});
+
+function updateBatteryBar(id, pct) {
+  document.querySelectorAll('.bat-row').forEach(function(row) {
+    if (row.querySelector('.bat-id').textContent.trim() === id) {
+      var fill = row.querySelector('.bat-fill');
+      var label = row.querySelector('.bat-pct');
+      fill.style.width = pct + '%';
+      fill.style.background = pct < 30 ? '#c0392b' : pct < 60 ? '#8a5a00' : '#2d6a1f';
+      label.textContent = pct + '%';
+    }
+  });
+}
+
+// === MISSION STATUS TOPIC ===
+var missionTopic = new ROSLIB.Topic({
+  ros: ros,
+  name: '/mission/status',
+  messageType: 'std_msgs/String'
+});
+
+missionTopic.subscribe(function(msg) {
+  addFeed('blue', msg.data, 'now');
+});
+
+// === CLOCK ===
+function tick() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB');
+}
+tick();
+setInterval(tick, 1000);
+
+// === TOOLTIP ===
+function tip(e, title, status, cargo) {
+  var t = document.getElementById('tooltip');
+  t.innerHTML = '<strong>' + title + '</strong><br>' + status + '<br><span style="color:#6b6b6b">' + cargo + '</span>';
+  t.style.display = 'block';
+  var rect = e.currentTarget.ownerSVGElement.parentElement.getBoundingClientRect();
+  t.style.left = (e.clientX - rect.left + 12) + 'px';
+  t.style.top  = (e.clientY - rect.top  + 12) + 'px';
+}
+function hideTip() {
+  document.getElementById('tooltip').style.display = 'none';
+}
+
+// === DISPATCH ===
+function dispatch(id, label, drone, eta) {
+  var el = document.getElementById(id);
+  if (!el || el.classList.contains('done')) return;
+  el.classList.add('done');
+
+  var svc = new ROSLIB.Service({
+    ros: ros,
+    name: '/dispatch_drone',
+    serviceType: 'std_srvs/Trigger'
+  });
+  svc.callService(new ROSLIB.ServiceRequest({}), function() {
+    addFeed('blue', drone + ' dispatched to ' + label + ' — ETA ' + eta, 'now');
+  });
+
+  var u = parseInt(document.getElementById('k-urgent').textContent) || 0;
+  if (u > 0) document.getElementById('k-urgent').textContent = u - 1;
+  var d = parseInt(document.getElementById('k-done').textContent) || 0;
+  document.getElementById('k-done').textContent = d + 1;
+}
+
+function autoDispatch() {
+  [
+    ['r1','P-041','DR-01','2 min'],
+    ['r2','P-033','DR-02','4 min'],
+    ['r3','Thameur OR','DR-03','7 min'],
+    ['r4','P-058','DR-04','9 min']
+  ].forEach(function(r, i) {
+    setTimeout(function() { dispatch(r[0], r[1], r[2], r[3]); }, i * 300);
+  });
+  addFeed('green', 'auto-dispatch: all 4 requests assigned optimally', 'now');
+}
+
+// === ACTIVITY LOG ===
+function addFeed(type, text, time) {
+  var f = document.getElementById('feed');
+  var d = document.createElement('div');
+  d.className = 'feed-item f-' + type + ' fadein';
+  d.innerHTML = '<div class="feed-dot"></div><div class="feed-text">' + text + '</div><span class="feed-time">' + time + '</span>';
+  f.insertBefore(d, f.firstChild);
+}
+
+// === SIMULATED INCOMING REQUESTS ===
+var sims = [
+  { name: 'P-072 — oxygen concentrator, COPD', detail: 'Menzah · 3.8 km from Thameur', color: '#8a5a00' },
+  { name: 'P-089 — insulin refill', detail: 'Ariana · 4.1 km from C. Nicolle', color: '#c0392b' }
+];
+var si = 0;
+setInterval(function() {
+  if (si >= sims.length) return;
+  var s = sims[si++];
+  var uid = 'r-sim-' + Date.now();
+  var list = document.getElementById('req-list');
+  var div = document.createElement('div');
+  div.className = 'req fadein';
+  div.id = uid;
+  div.innerHTML =
+    '<div class="req-accent" style="background:' + s.color + '"></div>' +
+    '<div class="req-body"><div class="req-name">' + s.name + '</div><div class="req-detail">' + s.detail + '</div></div>' +
+    '<span class="req-time">just now</span>';
+  div.onclick = function() { dispatch(uid, s.name.split(' — ')[0], 'DR-04', '~6 min'); };
+  list.appendChild(div);
+  addFeed('blue', 'New request: ' + s.name.split(' — ')[0], 'now');
+}, 25000);
+</script>
+</body>
+</html>
