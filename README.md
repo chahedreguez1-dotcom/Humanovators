@@ -89,9 +89,7 @@ medidrone-ops/
 - [ ] Authentication for operators
 - [ ] Historical delivery analytics
 
-## License
 
-MIT
 # MediRoute — Flutter App
 
 A mobile application for real-time medical drone delivery management in Greater Tunis, built with Flutter.
