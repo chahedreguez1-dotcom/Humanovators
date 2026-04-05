@@ -213,11 +213,4 @@ Splash → Onboarding → Login
 - [ ] Multi-language support (Arabic, French, English)
 - [ ] Dark mode
 
-## Related Projects
-
-- [MediDrone Ops Dashboard](https://github.com/your-username/medidrone-ops) — Web-based operator control center (HTML/JS/ROS)
-
-## License
-
-MIT
 
